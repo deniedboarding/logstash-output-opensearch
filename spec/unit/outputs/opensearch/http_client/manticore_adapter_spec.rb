@@ -25,13 +25,13 @@ describe LogStash::Outputs::OpenSearch::HttpClient::ManticoreAdapter do
   it "should implement host unreachable exceptions" do
     expect(subject.host_unreachable_exceptions).to be_a(Array)
   end
-  
+
   describe "auth" do
     let(:user) { "myuser" }
     let(:password) { "mypassword" }
     let(:noauth_uri) { clone = uri.clone; clone.user=nil; clone.password=nil; clone }
     let(:uri) { ::LogStash::Util::SafeURI.new("http://#{user}:#{password}@localhost:9200") }
-    
+
     it "should convert the auth to params" do
       resp = double("response")
       allow(resp).to receive(:call)
@@ -39,7 +39,7 @@ describe LogStash::Outputs::OpenSearch::HttpClient::ManticoreAdapter do
       
       expected_uri = noauth_uri.clone
       expected_uri.path = "/"
-      
+
       expect(subject.manticore).to receive(:get).
         with(expected_uri.to_s, {
           :headers => {"content-type" => "application/json"},
@@ -50,6 +50,76 @@ describe LogStash::Outputs::OpenSearch::HttpClient::ManticoreAdapter do
           }
         }).and_return resp
       
+      subject.perform_request(uri, :get, "/")
+    end
+  end
+
+  describe "aws_iam" do
+    let(:options) { {
+      :auth_type => {
+        "type"=>"aws_iam",
+        "aws_access_key_id"=>"AAAAAAAAAAAAAAAAAAAA",
+        "aws_secret_access_key"=>"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}
+    } }
+    subject { described_class.new(logger, options) }
+    let(:uri) { ::LogStash::Util::SafeURI.new("http://localhost:9200") }
+    let(:sign_aws_request) {  }
+
+    it "should validate AWS IAM credentials initialization" do
+      expect(subject.aws_iam_auth_initialization(options)).not_to be_nil
+    end
+
+    it "should validate signing aws request" do
+      resp = double("response")
+      allow(resp).to receive(:call)
+      allow(resp).to receive(:code).and_return(200)
+      allow(subject).to receive(:sign_aws_request).with(any_args).and_return(sign_aws_request)
+
+      expected_uri = uri.clone
+      expected_uri.path = "/"
+
+      expect(subject.manticore).to receive(:get).
+        with(expected_uri.to_s, {
+          :headers => {"content-type"=> "application/json"}
+        }
+        ).and_return resp
+
+      expect(subject).to receive(:sign_aws_request)
+      subject.perform_request(uri, :get, "/")
+    end
+  end
+
+  describe "basic_auth" do
+    let(:options) { {
+      :auth_type => {
+        "type"=>"basic",
+        "user" => "myuser",
+        "password" => "mypassword"}
+    } }
+    subject { described_class.new(logger, options) }
+    let(:user) {options[:auth_type]["user"]}
+    let(:password) {options[:auth_type]["password"]}
+    let(:noauth_uri) { clone = uri.clone; clone.user=nil; clone.password=nil; clone }
+    let(:uri) { ::LogStash::Util::SafeURI.new("http://localhost:9200") }
+
+    it "should validate master credentials with type as 'basic_auth'" do
+      resp = double("response")
+      allow(resp).to receive(:call)
+      allow(resp).to receive(:code).and_return(200)
+
+      expected_uri = noauth_uri.clone
+      expected_uri.path = "/"
+
+      expect(subject.manticore).to receive(:get).
+        with(expected_uri.to_s, {
+          :headers => {"content-type" => "application/json"},
+          :auth => {
+            :user => user,
+            :password => password,
+            :eager => true
+          }
+        }).and_return resp
+
       subject.perform_request(uri, :get, "/")
     end
   end

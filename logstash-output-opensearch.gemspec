@@ -1,6 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# The OpenSearch Contributors require contributions made to
+# this file be licensed under the Apache-2.0 license or a
+# compatible open source license.
+#
+# Modifications Copyright OpenSearch Contributors. See
+# GitHub history for details.
+
+signing_key_path = "gem-private_key.pem"
+
 Gem::Specification.new do |s|
   s.name            = 'logstash-output-opensearch'
-  s.version         = '1.0.0'
+  s.version         = '1.2.0'
 
   s.licenses        = ['Apache-2.0']
   s.summary         = "Stores logs in OpenSearch"
@@ -18,7 +29,10 @@ Gem::Specification.new do |s|
   # Tests
   s.test_files = s.files.grep(%r{^(test|spec|features)/})
 
-  s.cert_chain  = ['certs/opensearch-rubygems.pem']
+  if $PROGRAM_NAME.end_with?("gem") && ARGV == ["build", __FILE__] && File.exist?(signing_key_path)
+    s.signing_key = signing_key_path
+    s.cert_chain  = ['certs/opensearch-rubygems.pem']
+  end
 
   # Special flag to let us know this is actually a logstash plugin
   s.metadata = {
@@ -31,9 +45,11 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'stud', ['>= 0.0.17', '~> 0.0']
   s.add_runtime_dependency "logstash-core-plugin-api", ">= 1.60", "<= 2.99"
   s.add_runtime_dependency 'logstash-mixin-ecs_compatibility_support', '~>1.0'
+  s.add_runtime_dependency 'aws-sdk',  '>= 2.11.632', '~> 2'
 
   s.add_development_dependency 'logstash-codec-plain'
   s.add_development_dependency 'logstash-devutils'
   s.add_development_dependency 'flores'
   s.add_development_dependency 'cabin', ['~> 0.6']
+  s.add_development_dependency 'opensearch-ruby'
 end

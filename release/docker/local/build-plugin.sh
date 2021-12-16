@@ -18,7 +18,6 @@ GIT_ROOT=`git rev-parse --show-toplevel`
 echo 'Clear previous gem'
 echo -n "Remove "; rm -rfv logstash-output-opensearch*.gem
 
-echo 'Copy gemspec'
 cd $GIT_ROOT # We need to build the gem in root of this repo so .gemspec file contained locations are resolving correctly
 
 echo 'Building plugin gem'
